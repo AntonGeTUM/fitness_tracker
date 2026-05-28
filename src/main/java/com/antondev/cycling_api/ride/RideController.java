@@ -3,13 +3,16 @@ package com.antondev.cycling_api.ride;
 import com.antondev.cycling_api.ride.dto.RecordsResponse;
 import com.antondev.cycling_api.ride.dto.RideRequest;
 import com.antondev.cycling_api.ride.dto.RideResponse;
+import com.antondev.cycling_api.ride.dto.WeeklyStatsResponse;
 import com.antondev.cycling_api.user.User;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -58,5 +61,21 @@ public class RideController {
             @AuthenticationPrincipal User currentUser,
             @RequestParam(defaultValue = "alltime") String period) {
         return ResponseEntity.ok(rideService.getRecords(currentUser, period));
+    }
+
+    @GetMapping("/stats/weekly")
+    public ResponseEntity<List<WeeklyStatsResponse>> getWeeklyStats(
+            @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(rideService.getWeeklyStats(currentUser));
+    }
+
+    @PostMapping(value = "/upload/gpx", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<RideResponse> uploadGpx(
+            @AuthenticationPrincipal User currentUser,
+            @RequestParam String title,
+            @RequestParam MultipartFile file,
+            @RequestParam RideType rideType) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(rideService.createRideFromGpx(currentUser, title, file, rideType));
     }
 }

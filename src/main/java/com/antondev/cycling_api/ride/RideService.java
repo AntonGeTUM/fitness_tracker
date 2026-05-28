@@ -1,13 +1,21 @@
 package com.antondev.cycling_api.ride;
 
+import com.antondev.cycling_api.config.ResourceNotFoundException;
 import com.antondev.cycling_api.ride.dto.RecordsResponse;
 import com.antondev.cycling_api.ride.dto.RideRequest;
 import com.antondev.cycling_api.ride.dto.RideResponse;
+import com.antondev.cycling_api.ride.dto.WeeklyStatsResponse;
+import com.antondev.cycling_api.ride.gpx.GpxCalculator;
+import com.antondev.cycling_api.ride.gpx.GpxParser;
+import com.antondev.cycling_api.ride.gpx.GpxRoot;
+import com.antondev.cycling_api.ride.gpx.GpxTrackPoint;
 import com.antondev.cycling_api.user.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -17,6 +25,9 @@ import java.util.List;
 public class RideService {
 
     private final RideRepository rideRepository;
+    private final WeeklyStatsRepository weeklyStatsRepository;
+    private final GpxParser gpxParser;
+    private final GpxCalculator gpxCalculator;
 
     public RideResponse createRide(User currentUser, RideRequest request) {
         double avgSpeedKmh = calculateAvgSpeed(request.getDistanceKm(), request.getDurationSeconds());
@@ -86,9 +97,9 @@ public class RideService {
 
     private Ride findRideForUser(User currentUser, Long rideId) {
         Ride ride = rideRepository.findById(rideId)
-                .orElseThrow(() -> new RuntimeException("Ride not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Ride not found"));
         if (!ride.getUser().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("Not your ride");
+            throw new AccessDeniedException("Not your ride");
         }
         return ride;
     }
@@ -117,5 +128,55 @@ public class RideService {
                 .wattsPerKg(ride.getWattsPerKg())
                 .createdAt(ride.getCreatedAt())
                 .build();
+    }
+
+    public List<WeeklyStatsResponse> getWeeklyStats(User currentUser) {
+        return weeklyStatsRepository.findByUserOrderByYearDescWeekDesc(currentUser)
+                .stream()
+                .map(s -> WeeklyStatsResponse.builder()
+                        .year(s.getYear())
+                        .week(s.getWeek())
+                        .totalDistanceKm(s.getTotalDistanceKm())
+                        .totalElevationMeters(s.getTotalElevationMeters())
+                        .totalDurationSeconds(s.getTotalDurationSeconds())
+                        .rideCount(s.getRideCount())
+                        .calculatedAt(s.getCalculatedAt())
+                        .build())
+                .toList();
+    }
+
+    public RideResponse createRideFromGpx(User currentUser, String title, MultipartFile file, RideType rideType) {
+        GpxRoot gpx = gpxParser.parse(file);
+        List<GpxTrackPoint> points = gpxParser.extractTrackPoints(gpx);
+
+        if (points.isEmpty()) {
+            throw new IllegalArgumentException("GPX file contains no track points");
+        }
+
+        double distanceKm = gpxCalculator.calculateDistance(points);
+        int elevationMeters = gpxCalculator.calculateElevationGain(points);
+        int durationSeconds = gpxCalculator.calculateDuration(points);
+        Integer avgWatts = gpxCalculator.calculateAvgPower(points);
+        Integer avgHeartRate = gpxCalculator.calculateAvgHeartRate(points);
+        double avgSpeedKmh = calculateAvgSpeed(distanceKm, durationSeconds);
+        Double wattsPerKg = calculateWattsPerKg(avgWatts, currentUser.getWeightKg());
+
+        LocalDate date = LocalDate.parse(points.get(0).getTime().substring(0, 10));
+
+        Ride ride = Ride.builder()
+                .user(currentUser)
+                .title(title)
+                .date(date)
+                .distanceKm(distanceKm)
+                .durationSeconds(durationSeconds)
+                .elevationMeters(elevationMeters)
+                .avgWatts(avgWatts)
+                .avgHeartRate(avgHeartRate)
+                .avgSpeedKmh(avgSpeedKmh)
+                .wattsPerKg(wattsPerKg)
+                .rideType(rideType)
+                .build();
+
+        return toResponse(rideRepository.save(ride));
     }
 }

@@ -15,7 +15,8 @@ public class OpenApiConfig {
     @Bean
     public OpenAPI openAPI() {
         return new OpenAPI()
-                .addServersItem(new Server().url("/"))
+                .addServersItem(new Server().url("https://fitnesstracker-production-a695.up.railway.app"))
+                .addServersItem(new Server().url("http://localhost:8080"))
                 .info(new Info()
                         .title("Cycling API")
                         .description("REST API for cycling performance tracking")

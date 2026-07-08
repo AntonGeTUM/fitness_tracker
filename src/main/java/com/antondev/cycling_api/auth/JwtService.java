@@ -27,6 +27,7 @@ public class JwtService {
         return Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
     }
 
+    // https://stackoverflow.com/questions/54339794/how-to-get-claims-value-from-jwt-token-authentication
     private <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         Claims claim = Jwts.parser()
                 .verifyWith(getSigningKey())
@@ -41,6 +42,7 @@ public class JwtService {
         return extractClaim(token, Claims::getExpiration).before(new Date());
     }
 
+    // https://jrichardsz.medium.com/how-to-generate-and-validate-jwt-token-b5b265d5e0b
     public String generateToken(User user) {
         return Jwts.builder()
                 .subject(user.getEmail())

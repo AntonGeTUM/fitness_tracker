@@ -1,0 +1,5 @@
+<suppress>
+    <notes><![CDATA[file name: spring-core-7.0.7.jar]]></notes>
+    <packageUrl regex="true">^pkg:maven/org\.springframework/spring-core@.*$</packageUrl>
+    <cve>CVE-2026-41855</cve>
+</suppress>

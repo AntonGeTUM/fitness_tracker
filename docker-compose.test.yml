@@ -1,0 +1,18 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: cycling_api
+      POSTGRES_USER: cycling_user
+      POSTGRES_PASSWORD: cycling_pass
+
+  cycling-api:
+    image: registry.gitlab.com/na-group9074028/fitness_tracker:c4c85ff1
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: cycling_api
+      PGUSER: cycling_user
+      PGPASSWORD: cycling_pass
+    ports:
+      - "8080:8080"

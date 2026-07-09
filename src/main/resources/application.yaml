@@ -5,6 +5,9 @@ spring:
     url: jdbc:postgresql://${PGHOST:localhost}:${PGPORT:5432}/${PGDATABASE:cycling_api}?sslmode=${PGSSL:disable}
     username: ${PGUSER:antonge}
     password: ${PGPASSWORD:}
+    hikari:
+      connection-timeout: 60000
+      initialization-fail-timeout: 60000
   jpa:
     hibernate:
       ddl-auto: update

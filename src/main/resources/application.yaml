@@ -2,7 +2,7 @@ spring:
   application:
     name: cycling-api
   datasource:
-    url: jdbc:postgresql://${PGHOST:localhost}:${PGPORT:5432}/${PGDATABASE:cycling_api}?sslmode=require
+    url: jdbc:postgresql://${PGHOST:localhost}:${PGPORT:5432}/${PGDATABASE:cycling_api}?sslmode=${PGSSL:disable}
     username: ${PGUSER:antonge}
     password: ${PGPASSWORD:}
   jpa:
